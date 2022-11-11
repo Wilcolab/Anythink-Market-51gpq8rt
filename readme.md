@@ -10,4 +10,16 @@ When implementing a new feature or fixing a bug, please create a new pull reques
 
 ## First setup
 
-**[TODO 05/01/2018 @vanessa-cooper]:** _It's been a while since anyone ran a fresh copy of this repo. I think it's worth documenting the steps needed to install and run the repo on a new machine?_
+1. Clone the github repository
+2. Install docker (You can if it is properly installed by running the command <code>docker -v</code> and <code>docker-compose -v</code>)
+3. Go to project root 
+4. Run the command <code>docker-compose up</code>
+
+After that check docker is working correctly
+
+If Docker is working correctly, the backend should be running and able to connect to your local database.
+Test this by pointing your browser to http://localhost:3000/api/ping
+
+Then check front end is working properly
+If it is working properly then you can go to http://localhost:3001/register and create an account
+
