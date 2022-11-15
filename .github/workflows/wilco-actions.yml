@@ -1,4 +1,4 @@
-on: 
+on:
   pull_request:
     branches:
       - main
@@ -30,7 +30,7 @@ jobs:
       - name: Use Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: "3.9.13"
 
       - name: Wilco checks
         id: Wilco
@@ -50,8 +50,8 @@ jobs:
       - name: Lint code
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
-          cache: 'yarn'
+          node-version: "16"
+          cache: "yarn"
           cache-dependency-path: frontend/yarn.lock
       - run: yarn add lint
       - run: yarn lint
