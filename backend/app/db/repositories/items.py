@@ -16,6 +16,7 @@ from app.db.queries.tables import (
 from app.db.repositories.base import BaseRepository
 from app.db.repositories.profiles import ProfilesRepository
 from app.db.repositories.tags import TagsRepository
+from app.db.repositories.titles import TitlesRepository
 from app.models.domain.items import Item
 from app.models.domain.users import User
 
@@ -104,6 +105,7 @@ class ItemsRepository(BaseRepository):  # noqa: WPS214
         self,
         *,
         tag: Optional[str] = None,
+        title: Optional[str] = None,
         seller: Optional[str] = None,
         favorited: Optional[str] = None,
         limit: int = 20,
@@ -157,6 +159,12 @@ class ItemsRepository(BaseRepository):  # noqa: WPS214
             )
             # fmt: on
 
+        if title:
+            query_params.append(f"%{title}%")
+            query_params_count += 1
+
+            # fmt: off
+            query = query.where(items.title.like(Parameter(query_params_count)))
         if seller:
             query_params.append(seller)
             query_params_count += 1
