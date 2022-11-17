@@ -16,6 +16,10 @@ class TagsQueriesMixin:
 class TitlesQueriesMixin:
     async def get_all_titles(self, conn: Connection) -> Record: ...
 
+    async def create_new_tags(
+        self, conn: Connection, tags: Sequence[Dict[str, str]]
+    ) -> None: ...
+
 
 class UsersQueriesMixin:
     async def get_user_by_email(self, conn: Connection, *, email: str) -> Record: ...
