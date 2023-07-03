@@ -1,7 +1,7 @@
 from typing import List, Optional, Sequence, Union
 
 from asyncpg import Connection, Record
-from pypika import Query
+from pypika import Query, Order
 
 from app.db.errors import EntityDoesNotExist
 from app.db.queries.queries import queries
@@ -16,7 +16,6 @@ from app.db.queries.tables import (
 from app.db.repositories.base import BaseRepository
 from app.db.repositories.profiles import ProfilesRepository
 from app.db.repositories.tags import TagsRepository
-from app.db.repositories.titles import TitlesRepository
 from app.models.domain.items import Item
 from app.models.domain.users import User
 
@@ -73,25 +72,35 @@ class ItemsRepository(BaseRepository):  # noqa: WPS214
         title: Optional[str] = None,
         body: Optional[str] = None,
         description: Optional[str] = None,
+        image: Optional[str] = None, 
+        tags: Optional[Sequence[str]] = None,
     ) -> Item:
         updated_item = item.copy(deep=True)
-        updated_item.slug = slug or updated_item.slug
         updated_item.title = title or item.title
         updated_item.body = body or item.body
         updated_item.description = description or item.description
+        updated_item.image = image or item.image
 
         async with self.connection.transaction():
             updated_item.updated_at = await queries.update_item(
                 self.connection,
                 slug=item.slug,
-                seller_username=item.seller.username,
-                new_slug=updated_item.slug,
+                seller_username=item.seller.username,            
                 new_title=updated_item.title,
                 new_body=updated_item.body,
                 new_description=updated_item.description,
+                new_image=updated_item.image,
             )
 
-        return updated_item
+        if tags:
+            await self._tags_repo.create_tags_that_dont_exist(tags=tags)
+            await self._unlink_item_from_tags(slug=item.slug)
+            await self._link_item_with_tags(slug=item.slug, tags=tags)
+
+        return await self.get_item_by_slug(
+            slug=item.slug,
+            requested_user=item.seller,
+        )
 
     async def delete_item(self, *, item: Item) -> None:
         async with self.connection.transaction():
@@ -105,7 +114,6 @@ class ItemsRepository(BaseRepository):  # noqa: WPS214
         self,
         *,
         tag: Optional[str] = None,
-        title: Optional[str] = None,
         seller: Optional[str] = None,
         favorited: Optional[str] = None,
         limit: int = 20,
@@ -136,6 +144,8 @@ class ItemsRepository(BaseRepository):  # noqa: WPS214
             ).as_(
                 SELLER_USERNAME_ALIAS,
             ),
+        ).orderby(
+            items.created_at, order=Order.desc,
         )
         # fmt: on
 
@@ -159,12 +169,6 @@ class ItemsRepository(BaseRepository):  # noqa: WPS214
             )
             # fmt: on
 
-        if title:
-            query_params.append(f"%{title}%")
-            query_params_count += 1
-
-            # fmt: off
-            query = query.where(items.title.like(Parameter(query_params_count)))
         if seller:
             query_params.append(seller)
             query_params_count += 1
@@ -340,4 +344,10 @@ class ItemsRepository(BaseRepository):  # noqa: WPS214
         await queries.add_tags_to_item(
             self.connection,
             [{SLUG_ALIAS: slug, "tag": tag} for tag in tags],
+        )
+
+    async def _unlink_item_with_tags(self, *, slug: str) -> None:
+        await queries.delete_tags_from_item(
+            self.connection,
+                slug=slug,
         )
